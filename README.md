@@ -36,6 +36,11 @@ flowchart TD
   so a restart on the same day doesn't post twice. It no longer needs
   to be committed back to the repo (that was only necessary for the old
   stateless GitHub Actions cron).
+- The daily post's channel is picked in order: the channel set via the
+  `/setchannel` slash command (stored in `state.json`, requires the
+  "Manage Server" permission to run), then a channel named `general`
+  in a server the bot is in. `/ask` always replies in the channel it
+  was invoked from.
 
 ## Setup
 
@@ -46,8 +51,6 @@ flowchart TD
    bot to your server.
 4. Copy `.env.example` to `.env` and fill in:
    - `DISCORD_BOT_TOKEN` — from step 2.
-   - `DISCORD_CHANNEL_ID` — right-click the target channel → Copy
-     Channel ID (enable Developer Mode in Discord settings first).
    - `DISCORD_GUILD_ID` (optional) — your server's ID, for instant
      slash-command sync while developing. Global sync (no guild ID)
      can take up to an hour to propagate.

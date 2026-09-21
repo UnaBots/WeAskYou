@@ -9,7 +9,7 @@ A Discord bot: posts one discussion question per day, sourced live from the Para
 ## Commands
 
 - Install dependencies: `pip install -r requirements.txt`
-- Run the bot: `python src/bot.py` (requires `DISCORD_BOT_TOKEN` and `DISCORD_CHANNEL_ID` set; see README.md Setup)
+- Run the bot: `python src/bot.py` (requires `DISCORD_BOT_TOKEN` set; see README.md Setup)
 - Validate the JSON data files: `python -c "import json; json.load(open('questions.json')); json.load(open('state.json'))"`
 - Dry-run question sourcing without connecting to Discord: `python -c "import sys; sys.path.insert(0, 'src'); from icebreaker import get_question; print(get_question())"`
 
@@ -23,4 +23,5 @@ See `README.md` for the full diagram and design notes (fallback chain, why it's 
 - **Idempotency lives in `state.json`**, read/written by `src/state.py`. `last_posted_date` guards against a double post if the bot restarts on the same day; it's a local file on the host now, not something committed back to the repo (the old GitHub Actions cron needed that to survive between stateless runs — a persistent process doesn't).
 - **Time gating uses `Europe/Amsterdam` via `zoneinfo`** (stdlib, no dependency), attached as `tzinfo` on the `time` object passed to `tasks.loop`, so `discord.py` fires at the right wall-clock time across DST transitions. `TARGET_TIME` (env var, default `09:00`) is parsed in `src/date.py`.
 - **Question sourcing is a fallback chain, not a single source** (`src/icebreaker.py`): `fetch_icebreaker_question()` hits `icebreakers.parabol.co/api/icebreaker/random` (no API key). This replaced an earlier r/AskReddit source — Reddit's anti-bot system blocks anonymous requests from most cloud/hosting IP ranges (confirmed via a "blocked by network security" response), which is exactly the kind of IP a VPS has, and OAuth felt like unnecessary complexity once a simpler, no-auth API was available. Any failure (network error, HTTP error, malformed response) falls through to `fallback_question()`, which indexes into `questions.json` by day-of-year for the daily post (deterministic) or picks randomly for `/ask` (so repeated on-demand use doesn't return the same question all day), cycling without repeats until the list wraps.
-- Required env vars: `DISCORD_BOT_TOKEN`, `DISCORD_CHANNEL_ID`. Optional: `DISCORD_GUILD_ID` (fast slash-command sync while developing), `TARGET_TIME`.
+- **The daily-post channel is chosen in this order**: `channel_id` in `state.json` (set via the `/setchannel` slash command, restricted to members with `manage_guild`) → a channel literally named `general` in a guild the bot is in. `resolve_channel()` in `src/bot.py` implements this and is used by both the daily post and would be used by anything else needing the configured channel; `/ask` replies in the channel the command was invoked from and doesn't need it.
+- Required env vars: `DISCORD_BOT_TOKEN`. Optional: `DISCORD_GUILD_ID` (fast slash-command sync while developing), `TARGET_TIME`.
