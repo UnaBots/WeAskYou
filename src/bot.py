@@ -6,14 +6,13 @@ GitHub Actions cron + webhook setup. One connection both schedules the
 daily post and handles the /ask slash command.
 """
 import os
-from datetime import datetime, time as dtime
 
 import discord
 from discord.ext import commands, tasks
 
 from date import TIMEZONE, parse_target_time
 from icebreaker import get_question
-from state import load_state, save_state
+from state import already_posted_today, mark_posted_today
 
 CHANNEL_ID = int(os.environ["DISCORD_CHANNEL_ID"])
 GUILD_ID = os.environ.get("DISCORD_GUILD_ID")
@@ -21,16 +20,6 @@ DAILY_POST_TIME = parse_target_time().replace(tzinfo=TIMEZONE)
 
 intents = discord.Intents.default()
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-
-def already_posted_today() -> bool:
-    today = datetime.now(TIMEZONE).date().isoformat()
-    return load_state().get("last_posted_date") == today
-
-
-def mark_posted_today() -> None:
-    today = datetime.now(TIMEZONE).date().isoformat()
-    save_state({"last_posted_date": today})
 
 
 @tasks.loop(time=DAILY_POST_TIME)
