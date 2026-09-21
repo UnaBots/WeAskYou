@@ -1,5 +1,6 @@
 """Question sourcing: live r/AskReddit lookup with a local JSON fallback."""
 import json
+import random
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -30,13 +31,15 @@ def fetch_reddit_question() -> Optional[str]:
     return None
 
 
-def fallback_question() -> str:
+def fallback_question(random_pick: bool = False) -> str:
     questions = json.loads(QUESTIONS_PATH.read_text())
+    if random_pick:
+        return random.choice(questions)
     day_of_year = datetime.now(TIMEZONE).timetuple().tm_yday
     return questions[day_of_year % len(questions)]
 
 
-def get_question() -> str:
+def get_question(random_fallback: bool = False) -> str:
     try:
         question = fetch_reddit_question()
         if question:
@@ -45,4 +48,4 @@ def get_question() -> str:
         print("No suitable r/AskReddit post found, using fallback.")
     except requests.RequestException as exc:
         print(f"r/AskReddit fetch failed ({exc}), using fallback.")
-    return fallback_question()
+    return fallback_question(random_pick=random_fallback)

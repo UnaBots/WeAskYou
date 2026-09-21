@@ -1,38 +1,54 @@
 # WeAskYou
 
-A daily discussion question, posted to a Discord channel automatically.
+A Discord bot that posts a daily discussion question automatically, and
+answers `/ask` with a fresh one on demand.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    A["GitHub Actions<br/>cron: every 5 min, 24/7"] --> B["src/main.py<br/>checks time window + state.json"]
-    B -->|if due| C["Fetch r/AskReddit<br/>live discussion questions"]
-    C -->|fails / no match| D["Fallback: questions.json<br/>local list, cycles daily"]
-    C -->|success| E["Post to Discord webhook<br/>sends question to the channel"]
-    D --> E
-    E --> F["Commit state.json<br/>ensures only one post per day"]
+    A["src/bot.py<br/>always-on gateway connection"] -->|daily @ TARGET_TIME| B["Fetch r/AskReddit<br/>live discussion questions"]
+    A -->|/ask slash command| B
+    B -->|fails / no match| C["Fallback: questions.json<br/>local list, cycles daily"]
+    B -->|success| D["Send message to channel"]
+    C --> D
+    D -->|daily post only| E["Update state.json<br/>guards against a double post on restart"]
 ```
 
 ## Notes
 
-- No persistent bot process. GitHub Actions polls every 5 minutes (the
-  fastest interval it allows); `src/main.py` decides on each run
-  whether it's actually time to post, based on `TARGET_TIME` and
-  `state.json` (Europe/Amsterdam time, so daylight saving is handled
-  automatically).
+- This is a real gateway bot (`discord.py`), not a webhook — it holds a
+  persistent connection to Discord, so it needs an always-on host (a
+  VPS, not GitHub Actions).
+- The daily post is scheduled in-process with `discord.ext.tasks`, at
+  `TARGET_TIME` (default `09:00`) in `Europe/Amsterdam` time via
+  `zoneinfo`, so daylight saving is handled automatically.
+- `/ask` is a slash command handled by the same process — no separate
+  HTTP endpoint or reverse proxy needed, since gateway bots connect
+  outward to Discord rather than the other way around.
 - Question source has a fallback chain: r/AskReddit first (live, no API
   key), `questions.json` if that fails or yields nothing suitable.
-- `state.json` is committed back to the repo by the workflow after a
-  successful post, which is what prevents double-posting on the same day.
-- Delivery is a Discord webhook, not a bot with a gateway connection —
-  intentional, since it avoids needing a 24/7-hosted process.
+- `state.json` on the VPS records the last date a daily post succeeded,
+  so a restart on the same day doesn't post twice. It no longer needs
+  to be committed back to the repo (that was only necessary for the old
+  stateless GitHub Actions cron).
 
 ## Setup
 
-1. Create a Discord webhook in the target channel (Channel Settings →
-   Integrations → Webhooks).
-2. Add it as a repository secret named `DISCORD_WEBHOOK_URL`.
-3. Optionally set a repository variable `TARGET_TIME` (24h `HH:MM`,
-   Europe/Amsterdam) to control what time the question posts. Defaults to
-   `09:00`.
+1. Create an application at https://discord.com/developers/applications.
+2. On the "Bot" tab, add a bot and copy its **Token**.
+3. Generate an invite URL (OAuth2 → URL Generator, scopes `bot` and
+   `applications.commands`; bot permission `Send Messages`) and add the
+   bot to your server.
+4. Copy `.env.example` to `.env` and fill in:
+   - `DISCORD_BOT_TOKEN` — from step 2.
+   - `DISCORD_CHANNEL_ID` — right-click the target channel → Copy
+     Channel ID (enable Developer Mode in Discord settings first).
+   - `DISCORD_GUILD_ID` (optional) — your server's ID, for instant
+     slash-command sync while developing. Global sync (no guild ID)
+     can take up to an hour to propagate.
+   - `TARGET_TIME` (optional, 24h `HH:MM`, Europe/Amsterdam). Defaults
+     to `09:00`.
+5. Run it:
+   - Locally: `pip install -r requirements.txt && python src/bot.py`
+   - On a VPS: `docker compose up -d --build` (see `docker-compose.yml`)
