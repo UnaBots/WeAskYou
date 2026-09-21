@@ -11,9 +11,9 @@ from datetime import datetime, time as dtime
 import discord
 from discord.ext import commands, tasks
 
-from service.reddit import get_question
+from date import TIMEZONE, parse_target_time
+from icebreaker import get_question
 from state import load_state, save_state
-from util.date import TIMEZONE, parse_target_time
 
 CHANNEL_ID = int(os.environ["DISCORD_CHANNEL_ID"])
 GUILD_ID = os.environ.get("DISCORD_GUILD_ID")

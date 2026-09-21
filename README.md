@@ -7,7 +7,7 @@ answers `/ask` with a fresh one on demand.
 
 ```mermaid
 flowchart TD
-    A["src/bot.py<br/>always-on gateway connection"] -->|daily @ TARGET_TIME| B["Fetch r/AskReddit<br/>live discussion questions"]
+    A["src/bot.py<br/>always-on gateway connection"] -->|daily @ TARGET_TIME| B["Fetch from the Parabol<br/>icebreaker API"]
     A -->|/ask slash command| B
     B -->|fails / no match| C["Fallback: questions.json<br/>local list, cycles daily"]
     B -->|success| D["Send message to channel"]
@@ -26,8 +26,12 @@ flowchart TD
 - `/ask` is a slash command handled by the same process — no separate
   HTTP endpoint or reverse proxy needed, since gateway bots connect
   outward to Discord rather than the other way around.
-- Question source has a fallback chain: r/AskReddit first (live, no API
-  key), `questions.json` if that fails or yields nothing suitable.
+- Question source has a fallback chain: the Parabol icebreaker API
+  first (live, no key required — `icebreakers.parabol.co`),
+  `questions.json` if that fails or returns nothing usable. This
+  replaced an earlier r/AskReddit source, which Reddit's anti-bot
+  system blocks for most cloud/hosting IP ranges (the kind a VPS has)
+  unless you authenticate via OAuth.
 - `state.json` on the VPS records the last date a daily post succeeded,
   so a restart on the same day doesn't post twice. It no longer needs
   to be committed back to the repo (that was only necessary for the old
