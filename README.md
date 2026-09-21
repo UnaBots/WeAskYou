@@ -6,7 +6,7 @@ A daily discussion question, posted to a Discord channel automatically.
 
 ```mermaid
 flowchart TD
-    A["GitHub Actions<br/>cron: every 5 min, 24/7"] --> B["post_question.py<br/>checks time window + state.json"]
+    A["GitHub Actions<br/>cron: every 5 min, 24/7"] --> B["src/main.py<br/>checks time window + state.json"]
     B -->|if due| C["Fetch r/AskReddit<br/>live discussion questions"]
     C -->|fails / no match| D["Fallback: questions.json<br/>local list, cycles daily"]
     C -->|success| E["Post to Discord webhook<br/>sends question to the channel"]
@@ -17,7 +17,7 @@ flowchart TD
 ## Notes
 
 - No persistent bot process. GitHub Actions polls every 5 minutes (the
-  fastest interval it allows); `post_question.py` decides on each run
+  fastest interval it allows); `src/main.py` decides on each run
   whether it's actually time to post, based on `TARGET_TIME` and
   `state.json` (Europe/Amsterdam time, so daylight saving is handled
   automatically).

@@ -27,11 +27,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run post_question.py
+      - name: Run src/main.py
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           TARGET_TIME: ${{ vars.TARGET_TIME }}
-        run: python post_question.py
+        run: python src/main.py
 
       - name: Commit state.json if changed
         run: |

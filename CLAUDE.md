@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A single-purpose bot: post one discussion question to a Discord channel per day, sourced live from r/AskReddit with a local JSON fallback. There is no persistent process — a GitHub Actions cron job polls every 5 minutes, and `post_question.py` decides on each invocation whether it's actually time to post.
+A single-purpose bot: post one discussion question to a Discord channel per day, sourced live from r/AskReddit with a local JSON fallback. There is no persistent process — a GitHub Actions cron job polls every 5 minutes, and `src/main.py` decides on each invocation whether it's actually time to post.
 
 ## Commands
 
 - Install dependencies: `pip install -r requirements.txt`
-- Local dry run (no-op unless it's past `TARGET_TIME` and not yet posted today): `python post_question.py`
-- Force a run past the time gate for testing: `TARGET_TIME=00:00 python post_question.py` (requires `DISCORD_WEBHOOK_URL` set, or it will fail when it reaches the post step)
+- Local dry run (no-op unless it's past `TARGET_TIME` and not yet posted today): `python src/main.py`
+- Force a run past the time gate for testing: `TARGET_TIME=00:00 python src/main.py` (requires `DISCORD_WEBHOOK_URL` set, or it will fail when it reaches the post step)
 - Validate the JSON data files: `python -c "import json; json.load(open('questions.json')); json.load(open('state.json'))"`
 - Trigger the workflow manually instead of waiting for the cron: `gh workflow run post_question.yml`
 
