@@ -14,18 +14,25 @@ from state import load_state, save_state
 from util.date import TIMEZONE, parse_target_time
 
 
+def should_skip(state: dict, now: datetime, today: str) -> bool:
+    if state.get("last_posted_date") == today:
+        print(f"Already posted today ({today}). Skipping.")
+        return True
+
+    if now.time() < parse_target_time():
+        due_time = now.time().isoformat(timespec="minutes")
+        print(f"Not due yet ({due_time}). Skipping.")
+        return True
+
+    return False
+
+
 def main() -> int:
     now = datetime.now(TIMEZONE)
     today = now.date().isoformat()
 
     state = load_state()
-    if state.get("last_posted_date") == today:
-        print(f"Already posted today ({today}). Skipping.")
-        return 0
-
-    if now.time() < parse_target_time():
-        due_time = now.time().isoformat(timespec="minutes")
-        print(f"Not due yet ({due_time}). Skipping.")
+    if should_skip(state, now, today):
         return 0
 
     question = get_question()
